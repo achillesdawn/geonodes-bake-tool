@@ -6,32 +6,13 @@ use std::{
     str::FromStr,
 };
 
-use thiserror::Error;
 
 mod api;
-
 use api::{Attribute, BakeMetadata, Frame};
 
+mod errors;
+use errors::MetaReadError;
 
-#[derive(Error, Debug)]
-enum MetaReadError {
-    #[error("File read error")]
-    Io {
-        #[from]
-        source: io::Error,
-    },
-    #[error("Deserializing error")]
-    Deserialize {
-        #[from]
-        source: serde_json::Error,
-    },
-    #[error("Item not found")]
-    ItemNotFound,
-    #[error("Attribute not found")]
-    AttributeNotFound,
-    #[error("Parsing Blob name error")]
-    ParseIntError,
-}
 
 fn map_range<T: Copy>(value: T, from_min: T, from_max: T, to_min: T, to_max: T) -> T
 where
@@ -71,15 +52,22 @@ fn map_results(nums: Vec<f32>) -> String {
     r
 }
 
-#[derive(Debug)]
 struct Config {
     base_path: PathBuf,
     attribute_name: String,
+    frames: Vec<Frame>,
 }
 
-
 impl Config {
-    fn load_meta(&self) {
+    fn new(base_path: &str, attribute_name: &str) -> Self {
+        Config {
+            base_path: PathBuf::from_str(base_path).unwrap(),
+            attribute_name: attribute_name.to_owned(),
+            frames: Vec::new(),
+        }
+    }
+
+    fn load_meta(&mut self) -> Result<(), MetaReadError> {
         let mut meta_path = self.base_path.clone();
         meta_path.push("meta");
 
@@ -94,16 +82,13 @@ impl Config {
                 let read_result = self.read_meta(entry.path());
                 match read_result {
                     Ok(frame) => frames.push(frame),
-                    Err(err) => match err {
-                        MetaReadError::Io { source } => todo!(),
-                        MetaReadError::Deserialize { source } => todo!(),
-                        MetaReadError::ItemNotFound => todo!(),
-                        MetaReadError::AttributeNotFound => todo!(),
-                        MetaReadError::ParseIntError => todo!(),
-                    },
+                    Err(err) => return Err(err),
                 }
             }
         }
+
+        self.frames = frames;
+        Ok(())
     }
 
     fn read_meta(&self, path: PathBuf) -> Result<Frame, MetaReadError> {
@@ -176,10 +161,7 @@ impl Config {
 }
 
 fn main() {
-    let config = Config {
-        base_path: PathBuf::from_str("/tmp/91383020").unwrap(),
-        attribute_name: "light".to_owned(),
-    };
+    let mut config = Config::new("/tmp/91383020", "light");
 
-    config.load_meta();
+    config.load_meta().unwrap();
 }
