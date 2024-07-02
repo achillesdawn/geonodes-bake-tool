@@ -69,7 +69,7 @@ pub struct BakeMetadata {
     pub items: HashMap<String, Item>,
 }
 
-struct Frame {
-    number: u32,
-    buffer: String
+pub struct Frame {
+    pub number: u32,
+    pub buffer: String
 }
