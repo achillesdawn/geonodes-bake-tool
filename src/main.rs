@@ -3,16 +3,14 @@ use std::{
     io::{self, Read, Seek},
     ops::{Add, Div, Mul, Sub},
     path::PathBuf,
-    str::FromStr,
+    str::FromStr, thread::sleep, time::Duration,
 };
-
 
 mod api;
 use api::{Attribute, BakeMetadata, Frame};
 
 mod errors;
 use errors::MetaReadError;
-
 
 fn map_range<T: Copy>(value: T, from_min: T, from_max: T, to_min: T, to_max: T) -> T
 where
@@ -87,6 +85,7 @@ impl Config {
             }
         }
 
+        frames.sort_by(|a, b| a.number.cmp(&b.number));
         self.frames = frames;
         Ok(())
     }
@@ -164,4 +163,12 @@ fn main() {
     let mut config = Config::new("/tmp/91383020", "light");
 
     config.load_meta().unwrap();
+
+    loop {
+        
+        for frame in config.frames.iter() {
+            print!("{}", frame.buffer);
+            sleep(Duration::from_millis(100));
+        }
+    }
 }
