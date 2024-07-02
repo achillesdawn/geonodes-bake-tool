@@ -2,7 +2,6 @@ use std::{
     io::{Read, Seek},
     ops::{Add, Div, Mul, Sub},
     path::PathBuf,
-    process::Output,
     str::FromStr,
 };
 
@@ -13,6 +12,7 @@ use api::{Attribute, BakeMetadata};
 #[derive(Debug)]
 struct Config {
     base_path: PathBuf,
+    attribute_name: String
 }
 
 fn map_range<T: Copy>(value: T, from_min: T, from_max: T, to_min: T, to_max: T) -> T
@@ -22,10 +22,8 @@ where
     to_min + (value - from_min) * (to_max - to_min) / (from_max - from_min)
 }
 
-fn map_results(nums: Vec<f32>) {
+fn map_results(nums: Vec<f32>) -> String {
     let characters = [' ', '·', '-', '+', 'r', '@'];
-    // let characters = [' ', '.', '-', '+', 'r', '@'];
-    let l = characters.len();
 
     let mut max = f32::NEG_INFINITY;
     let mut min = f32::INFINITY;
@@ -38,33 +36,21 @@ fn map_results(nums: Vec<f32>) {
         }
     }
 
-    println!("MAx {} Min {}", max, min);
+    // println!("MAx {} Min {}", max, min);
 
-    let r: Vec<f32> = nums
+    let r: String = nums
         .iter()
         .map(|num| {
             if *num != 0.0 {
-                map_range(*num, min, max, 0.0, 6.0)
+                map_range(*num, min, max, 0.0, 5.0)
             } else {
                 0.0
             }
         })
+        .map(|num| characters[num as usize])
         .collect();
 
-    for item in r {
-        let repr = match item {
-            0.0..=0.5 => characters[0],
-            0.5..=1.0 => characters[1],
-            1.0..=2.0 => characters[2],
-            2.0..=3.0 => characters[3],
-            3.0..=4.0 => characters[4],
-            4.0..=5.0 => characters[5],
-            _ => ' ',
-        };
-
-        print!("{}", repr);
-    }
-    println!()
+    r
 }
 
 impl Config {
@@ -78,13 +64,7 @@ impl Config {
             let metadata = entry.metadata().unwrap();
 
             if metadata.is_file() {
-                let filename = entry.file_name().into_string().unwrap();
-                let frame = filename.split("_").next().unwrap().parse::<u32>().unwrap();
-
-                if frame == 19 {
-                    self.read_meta(entry.path());
-                    break;
-                }
+                self.read_meta(entry.path());
             }
         }
     }
@@ -97,7 +77,7 @@ impl Config {
         println!("{} {:?} ", item.name, item.item_type);
 
         for attribute in item.data.mesh.attributes.iter() {
-            if attribute.name != "light" {
+            if attribute.name != self.attribute_name {
                 continue;
             }
 
@@ -111,7 +91,7 @@ impl Config {
         }
     }
 
-    fn read_blob(&self, attribute: &Attribute) {
+    fn read_blob(&self, attribute: &Attribute) -> String {
         let blob_path;
         {
             let mut path = self.base_path.clone();
@@ -120,7 +100,7 @@ impl Config {
             blob_path = path;
         }
 
-        dbg!(&blob_path);
+        // dbg!(&blob_path);
 
         let mut file = std::fs::File::open(blob_path).unwrap();
         file.seek(std::io::SeekFrom::Start(attribute.data.start))
@@ -136,12 +116,14 @@ impl Config {
             result.push(num);
         }
 
-        map_results(result);
+        let buffer = map_results(result);
+        return buffer;
     }
 }
 fn main() {
     let config = Config {
         base_path: PathBuf::from_str("/tmp/91383020").unwrap(),
+        attribute_name: "light".to_owned()
     };
 
     config.load_meta();

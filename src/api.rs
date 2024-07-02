@@ -71,5 +71,5 @@ pub struct BakeMetadata {
 
 struct Frame {
     number: u32,
-    data: BakeMetadata,
+    buffer: String
 }
