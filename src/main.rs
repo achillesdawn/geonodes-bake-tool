@@ -12,27 +12,25 @@ mod api;
 
 use api::{Attribute, BakeMetadata, Frame};
 
-#[derive(Debug)]
-struct Config {
-    base_path: PathBuf,
-    attribute_name: String,
-}
-
 
 #[derive(Error, Debug)]
 enum MetaReadError {
     #[error("File read error")]
     Io {
         #[from]
-        source: io::Error
+        source: io::Error,
     },
     #[error("Deserializing error")]
     Deserialize {
         #[from]
-        source: serde_json::Error
+        source: serde_json::Error,
     },
     #[error("Item not found")]
-    ItemNotFound
+    ItemNotFound,
+    #[error("Attribute not found")]
+    AttributeNotFound,
+    #[error("Parsing Blob name error")]
+    ParseIntError,
 }
 
 fn map_range<T: Copy>(value: T, from_min: T, from_max: T, to_min: T, to_max: T) -> T
@@ -73,12 +71,19 @@ fn map_results(nums: Vec<f32>) -> String {
     r
 }
 
+#[derive(Debug)]
+struct Config {
+    base_path: PathBuf,
+    attribute_name: String,
+}
+
+
 impl Config {
     fn load_meta(&self) {
         let mut meta_path = self.base_path.clone();
         meta_path.push("meta");
 
-        let frames: Vec<Frame> = Vec::new();
+        let mut frames: Vec<Frame> = Vec::new();
 
         for entry in fs::read_dir(meta_path).unwrap() {
             let entry = entry.unwrap();
@@ -87,10 +92,14 @@ impl Config {
 
             if metadata.is_file() {
                 let read_result = self.read_meta(entry.path());
-                match read_result{
-                    Ok(_) => todo!(),
-                    Err(err) => match err. {
-                        
+                match read_result {
+                    Ok(frame) => frames.push(frame),
+                    Err(err) => match err {
+                        MetaReadError::Io { source } => todo!(),
+                        MetaReadError::Deserialize { source } => todo!(),
+                        MetaReadError::ItemNotFound => todo!(),
+                        MetaReadError::AttributeNotFound => todo!(),
+                        MetaReadError::ParseIntError => todo!(),
                     },
                 }
             }
@@ -106,7 +115,7 @@ impl Config {
             return Err(MetaReadError::ItemNotFound);
         }
         let item = item.unwrap();
-        
+
         println!("{} {:?} ", item.name, item.item_type);
 
         for attribute in item.data.mesh.attributes.iter() {
@@ -124,13 +133,10 @@ impl Config {
             return Ok(frame);
         }
 
-        Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "Attribute not found",
-        )))
+        Err(MetaReadError::AttributeNotFound)
     }
 
-    fn read_blob(&self, attribute: &Attribute) -> Result<Frame, Box<dyn Error>> {
+    fn read_blob(&self, attribute: &Attribute) -> Result<Frame, MetaReadError> {
         let blob_path;
         {
             let mut path = self.base_path.clone();
@@ -139,7 +145,7 @@ impl Config {
             blob_path = path;
         }
 
-        // dbg!(&blob_path);
+        dbg!(&blob_path);
 
         let mut file = fs::File::open(blob_path)?;
         file.seek(io::SeekFrom::Start(attribute.data.start))?;
@@ -163,9 +169,9 @@ impl Config {
             .next()
             .unwrap_or("")
             .parse::<u32>()
-            .expect("Could not parse frame from blob filename");
+            .map_err(|_| MetaReadError::ParseIntError)?;
 
-        return Ok(Frame { buffer, number });
+        Ok(Frame { buffer, number })
     }
 }
 
