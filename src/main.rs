@@ -1,6 +1,8 @@
 use std::{
     io::{Read, Seek},
+    ops::{Add, Div, Mul, Sub},
     path::PathBuf,
+    process::Output,
     str::FromStr,
 };
 
@@ -11,6 +13,58 @@ use api::{Attribute, BakeMetadata};
 #[derive(Debug)]
 struct Config {
     base_path: PathBuf,
+}
+
+fn map_range<T: Copy>(value: T, from_min: T, from_max: T, to_min: T, to_max: T) -> T
+where
+    T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Div<T, Output = T>,
+{
+    to_min + (value - from_min) * (to_max - to_min) / (from_max - from_min)
+}
+
+fn map_results(nums: Vec<f32>) {
+    let characters = [' ', '·', '-', '+', 'r', '@'];
+    // let characters = [' ', '.', '-', '+', 'r', '@'];
+    let l = characters.len();
+
+    let mut max = f32::NEG_INFINITY;
+    let mut min = f32::INFINITY;
+
+    for item in nums.iter() {
+        if *item > max {
+            max = *item;
+        } else if *item < min {
+            min = *item;
+        }
+    }
+
+    println!("MAx {} Min {}", max, min);
+
+    let r: Vec<f32> = nums
+        .iter()
+        .map(|num| {
+            if *num != 0.0 {
+                map_range(*num, min, max, 0.0, 6.0)
+            } else {
+                0.0
+            }
+        })
+        .collect();
+
+    for item in r {
+        let repr = match item {
+            0.0..=0.5 => characters[0],
+            0.5..=1.0 => characters[1],
+            1.0..=2.0 => characters[2],
+            2.0..=3.0 => characters[3],
+            3.0..=4.0 => characters[4],
+            4.0..=5.0 => characters[5],
+            _ => ' ',
+        };
+
+        print!("{}", repr);
+    }
+    println!()
 }
 
 impl Config {
@@ -24,10 +78,14 @@ impl Config {
             let metadata = entry.metadata().unwrap();
 
             if metadata.is_file() {
-                self.read_meta(entry.path());
-            }
+                let filename = entry.file_name().into_string().unwrap();
+                let frame = filename.split("_").next().unwrap().parse::<u32>().unwrap();
 
-            break;
+                if frame == 19 {
+                    self.read_meta(entry.path());
+                    break;
+                }
+            }
         }
     }
 
@@ -35,7 +93,6 @@ impl Config {
         let file = std::fs::File::open(path).unwrap();
         let bake_metadata: BakeMetadata = serde_json::from_reader(file).unwrap();
 
-        dbg!(&bake_metadata);
         let item = bake_metadata.items.get("0").unwrap();
         println!("{} {:?} ", item.name, item.item_type);
 
@@ -44,14 +101,13 @@ impl Config {
                 continue;
             }
 
+            println!("Blob file {}", attribute.data.name);
             println!(
                 "Found {}, of domain {} and type {}",
                 attribute.name, attribute.domain, attribute.attribute_type
             );
-            println!("Blob file {}", attribute.data.name);
 
             self.read_blob(attribute);
-            break;
         }
     }
 
@@ -73,25 +129,14 @@ impl Config {
         let mut reader = std::io::BufReader::new(file).take(attribute.data.size);
 
         let mut result: Vec<f32> = Vec::with_capacity((attribute.data.size / 4) as usize);
-        let mut convert_buf = [0u8; 4];
+        let mut buffer = [0u8; 4];
 
-        while let Ok(()) = reader.read_exact(&mut convert_buf) {
-            let num = f32::from_le_bytes(convert_buf);
+        while let Ok(()) = reader.read_exact(&mut buffer) {
+            let num = f32::from_le_bytes(buffer);
             result.push(num);
         }
 
-        let mut max = f32::NEG_INFINITY;
-        let mut min = f32::INFINITY;
-
-        for num in result.iter() {
-            if *num > max {
-                max = *num;
-            } else if *num < min {
-                min = *num;
-            }
-        }
-
-        dbg!(max, min);
+        map_results(result);
     }
 }
 fn main() {
