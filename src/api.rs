@@ -30,13 +30,13 @@ impl Display for Domain {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct BlobData {
+pub struct BlobData {
     pub name: String,
     pub start: u64,
     pub size: u64,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct Attribute {
+pub struct Attribute {
     pub name: String,
     pub domain: Domain,
     #[serde(rename = "type")]
@@ -44,7 +44,7 @@ pub(crate) struct Attribute {
     pub data: BlobData,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct MeshData {
+pub struct MeshData {
     num_vertices: u64,
     num_edges: u64,
     num_polygons: u64,
@@ -53,11 +53,11 @@ pub(crate) struct MeshData {
     pub attributes: Vec<Attribute>,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct ItemData {
+pub struct ItemData {
     pub mesh: MeshData,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct Item {
+pub struct Item {
     pub name: String,
     #[serde(rename = "type")]
     pub item_type: ItemType,
