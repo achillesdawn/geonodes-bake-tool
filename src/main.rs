@@ -12,21 +12,18 @@ use std::{
 use crossterm::QueueableCommand;
 use geonodes_bake_tool::{tui, App};
 
-
-
-
 fn main() {
-    let mut config = App::new("/tmp/91383020", "light", 88);
+    let mut config = App::new("/tmp/91383020", vec!["light", "hit"], 88);
 
     config.load_meta().unwrap();
 
     // for frame in config.frames {
     //     print!("{}", frame.buffer);
     // }
-    
-    let mut app = tui::TuiApp::new(config.frames);
-    let mut terminal = tui::init().unwrap();
-    
-    app.run(&mut terminal);
-    tui::restore().unwrap();
+
+    // let mut app = tui::TuiApp::new(config.frames);
+    // let mut terminal = tui::init().unwrap();
+
+    // app.run(&mut terminal);
+    // tui::restore().unwrap();
 }
