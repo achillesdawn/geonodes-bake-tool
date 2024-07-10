@@ -36,7 +36,9 @@ impl BakeReader {
             if metadata.is_file() {
                 let read_result = self.read_meta(entry.path());
                 match read_result {
-                    Ok(frame) => geometries.push(frame),
+                    Ok(geometry) => {
+                        geometries.push(geometry);
+                    }
                     Err(err) => return Err(err),
                 }
             }
@@ -48,6 +50,8 @@ impl BakeReader {
     }
 
     fn read_meta(&self, path: PathBuf) -> Result<Geometry, MetaReadError> {
+        let frame_number = get_frame_number(&path)?;
+
         let file = fs::File::open(path)?;
         let mut bake_metadata: BakeMetadata = serde_json::from_reader(file)?;
 
@@ -58,6 +62,8 @@ impl BakeReader {
         let mut geometry: Geometry = match item.item_type {
             api::ItemType::GEOMETRY => item.into(),
         };
+
+        geometry.frame = frame_number;
 
         let attributes = std::mem::take(&mut geometry.mesh.attributes);
 
@@ -137,4 +143,19 @@ impl BakeReader {
 
         Ok(result)
     }
+}
+
+fn get_frame_number(path: &PathBuf) -> Result<u32, MetaReadError> {
+    let frame_number = path
+        .file_name()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap()
+        .split("_")
+        .next()
+        .unwrap_or("")
+        .parse::<u32>()
+        .map_err(|_| MetaReadError::ParseIntError)?;
+
+    Ok(frame_number)
 }

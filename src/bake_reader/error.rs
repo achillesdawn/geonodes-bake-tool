@@ -19,4 +19,6 @@ pub enum MetaReadError {
     AttributeNotFound,
     #[error("Parsing Blob name error")]
     ParseIntError,
+    #[error("could not get frame from filename")]
+    FrameNotInFileName
 }

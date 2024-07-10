@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use bake_reader::api::{RawAttribute, AttributeType, BakeMetadata, Frame};
+use bake_reader::api::{RawAttribute, AttributeType, BakeMetadata, Frames};
 
 pub mod math;
 pub mod tui;
@@ -19,19 +19,12 @@ pub struct App {
     base_path: PathBuf,
     attribute_names: Vec<&'static str>,
     col_size: usize,
-    pub frames: Vec<Frame>,
+    pub frames: Vec<Frames>,
 }
 
 // let buffer = map_results(result, self.col_size);
 
-// let frame_number = attribute
-//     .data
-//     .name
-//     .split("_")
-//     .next()
-//     .unwrap_or("")
-//     .parse::<u32>()
-//     .map_err(|_| MetaReadError::ParseIntError)?;
+
 
 // Ok(Frame {
 //     buffer,

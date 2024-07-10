@@ -94,11 +94,7 @@ pub struct Item {
     pub data: ItemData,
 }
 
-impl Into<Geometry> for Item {
-    fn into(self) -> Geometry {
-        Geometry { mesh: self.data.mesh, attributes: Vec::new() }
-    }
-}
+
 
 #[derive(Debug, Deserialize)]
 pub struct BakeMetadata {
@@ -117,9 +113,26 @@ pub struct Attribute {
 pub struct Geometry {
     pub mesh: MeshData,
     pub attributes: Vec<Attribute>,
+    pub frame: u32,
 }
 
-pub struct Frame {
+impl From<Item> for Geometry {
+    fn from(value: Item) -> Self {
+        Geometry {
+            mesh: value.data.mesh,
+            attributes: Vec::new(),
+            frame: 0u32,
+        }
+    }
+}
+
+pub struct Frames {
     pub number: u32,
     pub buffer: String,
+}
+
+impl From<Vec<Geometry>> for Frames {
+    fn from(value: Vec<Geometry>) -> Self {
+        todo!()
+    }
 }
