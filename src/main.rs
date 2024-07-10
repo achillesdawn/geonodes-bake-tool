@@ -10,12 +10,16 @@ use std::{
 };
 
 use crossterm::QueueableCommand;
-use geonodes_bake_tool::{tui, App};
+use geonodes_bake_tool::{bake_reader::BakeReader, tui, App};
 
 fn main() {
-    let mut config = App::new("/tmp/91383020", vec!["light", "hit"], 88);
+    let mut reader = BakeReader::new("tests/91383020", &["light", "hit"]);
+    let geometries = reader.load_meta().unwrap();
 
-    config.load_meta().unwrap();
+    
+    // let mut config = App::new("/tmp/91383020", vec!["light", "hit"], 88);
+
+    // config.load_meta().unwrap();
 
     // for frame in config.frames {
     //     print!("{}", frame.buffer);

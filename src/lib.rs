@@ -11,7 +11,7 @@ use bake_reader::api::{RawAttribute, AttributeType, BakeMetadata, Frame};
 pub mod math;
 pub mod tui;
 
-mod bake_reader;
+pub mod bake_reader;
 
 pub use bake_reader::api;
 
@@ -21,6 +21,22 @@ pub struct App {
     col_size: usize,
     pub frames: Vec<Frame>,
 }
+
+// let buffer = map_results(result, self.col_size);
+
+// let frame_number = attribute
+//     .data
+//     .name
+//     .split("_")
+//     .next()
+//     .unwrap_or("")
+//     .parse::<u32>()
+//     .map_err(|_| MetaReadError::ParseIntError)?;
+
+// Ok(Frame {
+//     buffer,
+//     number: frame_number,
+// })
 
 fn map_results(nums: Vec<f32>, col_size: usize) -> String {
     let characters = [' ', '·', '-', '+', 'r', '@'];

@@ -72,7 +72,7 @@ pub struct RawAttribute {
     pub data: BlobData,
 }
 #[derive(Debug, Deserialize)]
-pub struct RawMeshData {
+pub struct MeshData {
     pub num_vertices: u64,
     pub num_edges: u64,
     pub num_polygons: u64,
@@ -83,8 +83,9 @@ pub struct RawMeshData {
 
 #[derive(Debug, Deserialize)]
 pub struct ItemData {
-    pub mesh: RawMeshData,
+    pub mesh: MeshData,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct Item {
     pub name: String,
@@ -92,6 +93,13 @@ pub struct Item {
     pub item_type: ItemType,
     pub data: ItemData,
 }
+
+impl Into<Geometry> for Item {
+    fn into(self) -> Geometry {
+        Geometry { mesh: self.data.mesh, attributes: Vec::new() }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct BakeMetadata {
     version: u8,
@@ -105,12 +113,9 @@ pub struct Attribute {
     pub attribute_type: AttributeType,
     pub data: AttributeData,
 }
+
 pub struct Geometry {
-    pub name: String,
-    pub num_vertices: u64,
-    pub num_edges: u64,
-    pub num_polygons: u64,
-    pub num_corners: u64,
+    pub mesh: MeshData,
     pub attributes: Vec<Attribute>,
 }
 
