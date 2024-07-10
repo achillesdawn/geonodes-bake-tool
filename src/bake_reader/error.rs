@@ -13,12 +13,16 @@ pub enum MetaReadError {
         #[from]
         source: serde_json::Error,
     },
+
     #[error("Item not found")]
     ItemNotFound,
+
     #[error("Attribute not found")]
     AttributeNotFound,
+
     #[error("Parsing Blob name error")]
     ParseIntError,
+
     #[error("could not get frame from filename")]
-    FrameNotInFileName
+    FrameNotInFileName,
 }
