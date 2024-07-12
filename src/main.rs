@@ -14,9 +14,17 @@ use geonodes_bake_tool::{bake_reader::BakeReader, tui, App};
 
 fn main() {
     let mut reader = BakeReader::new("tests/91383020", &["light", "hit"]);
-    let geometries = reader.load_meta().unwrap();
+    let geometry = reader.load_meta().unwrap();
 
+    for (attribute, data) in geometry.domain.point.iter() {
+        dbg!(attribute);
+        for frame in data.iter() {
+            dbg!(&frame.frame);
+            
+        }
+    }
 
+    
     // let mut config = App::new("/tmp/91383020", vec!["light", "hit"], 88);
 
     // config.load_meta().unwrap();

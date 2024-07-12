@@ -7,12 +7,13 @@ use std::{
 
 pub mod api;
 mod error;
-use api::{Attribute, AttributeData, BakeMetadata, Geometry, GeometryFrame, RawAttribute};
+use api::{Attribute, AttributeData, BakeMetadata, Geometry, GeometryBuilder, RawAttribute};
 use error::MetaReadError;
 
 pub struct BakeReader {
     pub base_path: PathBuf,
     pub attributes: &'static [&'static str],
+    geometry_builder: GeometryBuilder,
 }
 
 impl BakeReader {
@@ -20,96 +21,79 @@ impl BakeReader {
         BakeReader {
             base_path: PathBuf::from_str(base_path).unwrap(),
             attributes,
+            geometry_builder: GeometryBuilder::new(),
         }
     }
 
-    pub fn load_meta(&mut self) -> Result<Geometry, MetaReadError> {
+    pub fn load_meta(mut self) -> Result<Geometry, MetaReadError> {
         let mut meta_path = self.base_path.clone();
         meta_path.push("meta");
-
-        let mut geometries = Vec::new();
 
         for entry in fs::read_dir(meta_path).unwrap() {
             let entry = entry.unwrap();
             let metadata = entry.metadata().unwrap();
 
             if metadata.is_file() {
-                let read_result = self.read_meta(entry.path());
-                match read_result {
-                    Ok(geometry) => {
-                        geometries.push(geometry);
-                    }
-                    Err(err) => return Err(err),
-                }
+                self.read_meta(entry.path())?;
             }
         }
 
-        geometries.sort_by(|a, b| a.frame.cmp(&b.frame));
+        self.geometry_builder.sort_frames();
 
-        let geometry: Geometry = geometries.into();
-        // frames.sort_by(|a, b| a.number.cmp(&b.number));
-        // self.frames = frames;
-        Ok(geometry)
+        Ok(self.geometry_builder.build())
     }
 
-    fn read_meta(&self, path: PathBuf) -> Result<GeometryFrame, MetaReadError> {
-        let frame_number = get_frame_number(&path)?;
-
+    fn read_meta(&mut self, path: PathBuf) -> Result<(), MetaReadError> {
+        let frame = get_frame_number(&path)?;
         let file = fs::File::open(path)?;
         let mut bake_metadata: BakeMetadata = serde_json::from_reader(file)?;
 
-        let Some((_, item)) = bake_metadata.items.remove_entry("0") else {
+        let Some((_, mut item)) = bake_metadata.items.remove_entry("0") else {
             return Err(MetaReadError::ItemNotFound);
         };
 
-        let mut frame: GeometryFrame = match item.item_type {
-            api::ItemType::GEOMETRY => item.into(),
-        };
+        // match item.item_type {
+        //     api::ItemType::GEOMETRY => {},
+        // };
 
-        frame.frame = frame_number;
+        let attributes = std::mem::take(&mut item.data.mesh.attributes);
+        if self.geometry_builder.mesh.is_none() {
+            self.geometry_builder.mesh = Some(item.data.mesh);
+        }
 
-        let attributes = std::mem::take(&mut frame.mesh.attributes);
-
-        for mut raw_attribute in attributes.into_iter() {
+        for raw_attribute in attributes.into_iter() {
             dbg!(&raw_attribute.name);
 
             if !self.attributes.contains(&raw_attribute.name.as_str()) {
                 continue;
             }
 
-            println!("Blob file {}", raw_attribute.data.name);
             println!(
-                "Found {}, of domain {} and type {}",
-                raw_attribute.name, raw_attribute.domain, raw_attribute.attribute_type
+                "File {} Found {}, of domain {} and type {}",
+                raw_attribute.data.name,
+                raw_attribute.name,
+                raw_attribute.domain,
+                raw_attribute.attribute_type
             );
 
-            let entry = match &raw_attribute.domain {
-                api::Domain::POINT => frame
-                    .domain
-                    .point
-                    .entry(std::mem::take(&mut raw_attribute.name)),
-                api::Domain::EDGE => frame
-                    .domain
-                    .edge
-                    .entry(std::mem::take(&mut raw_attribute.name)),
-                api::Domain::FACE => frame
-                    .domain
-                    .face
-                    .entry(std::mem::take(&mut raw_attribute.name)),
-                api::Domain::CORNER => frame
-                    .domain
-                    .corner
-                    .entry(std::mem::take(&mut raw_attribute.name)),
+            let attribute = self.read_blob(raw_attribute, frame)?;
+
+            let domain_map = match &attribute.domain {
+                api::Domain::POINT => &mut self.geometry_builder.domain.point,
+                api::Domain::EDGE => &mut self.geometry_builder.domain.edge,
+                api::Domain::FACE => &mut self.geometry_builder.domain.face,
+                api::Domain::CORNER => &mut self.geometry_builder.domain.corner,
             };
 
-            let attribute = self.read_blob(raw_attribute)?;
-            entry.or_insert_with(|| attribute);
+            let entry = domain_map.entry(attribute.name.clone());
+
+            entry.or_insert(Vec::new()).push(attribute);
         }
 
-        Ok(frame)
+        Ok(())
     }
 
-    fn read_blob(&self, attribute: RawAttribute) -> Result<Attribute, MetaReadError> {
+    fn read_blob(&self, attribute: RawAttribute, frame: u32) -> Result<Attribute, MetaReadError> {
         let blob_path;
         {
             let mut path = self.base_path.clone();
@@ -140,6 +124,7 @@ impl BakeReader {
         };
 
         let result = Attribute {
+            frame,
             name: attribute.name,
             domain: attribute.domain,
             attribute_type: attribute.attribute_type,

@@ -25,4 +25,7 @@ pub enum MetaReadError {
 
     #[error("could not get frame from filename")]
     FrameNotInFileName,
+
+    #[error("no frames read")]
+    NoFramesRead,
 }

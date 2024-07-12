@@ -43,11 +43,11 @@ pub struct TuiApp {
     is_playing: bool,
     current_frame: usize,
     total_frames: usize,
-    frames: Vec<api::GeometryFrame>,
+    frames: Vec<api::GeometryBuilder>,
 }
 
 impl TuiApp {
-    pub fn new(frames: Vec<api::GeometryFrame>) -> Self {
+    pub fn new(frames: Vec<api::GeometryBuilder>) -> Self {
         TuiApp {
             done: false,
             is_playing: true,

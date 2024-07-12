@@ -1,9 +1,6 @@
-#![allow(unused)]
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    fmt::{write, Display},
-};
+use std::{collections::HashMap, fmt::Display};
+
 
 #[derive(Debug, Deserialize)]
 pub enum ItemType {
@@ -51,6 +48,7 @@ impl Display for AttributeType {
     }
 }
 
+#[derive(Debug)]
 pub enum AttributeData {
     FLOAT(Vec<f32>),
     BOOL(Vec<bool>),
@@ -77,7 +75,7 @@ pub struct MeshData {
     pub num_edges: u64,
     pub num_polygons: u64,
     pub num_corners: u64,
-    poly_offsets: BlobData,
+    // poly_offsets: BlobData,
     pub attributes: Vec<RawAttribute>,
 }
 
@@ -96,23 +94,23 @@ pub struct Item {
 
 #[derive(Debug, Deserialize)]
 pub struct BakeMetadata {
-    version: u8,
+    // version: u8,
     pub items: HashMap<String, Item>,
 }
 
 pub struct Attribute {
     pub name: String,
     pub domain: Domain,
-
+    pub frame: u32,
     pub attribute_type: AttributeType,
     pub data: AttributeData,
 }
 
 pub struct Domains {
-    pub point: HashMap<String, Attribute>,
-    pub edge: HashMap<String, Attribute>,
-    pub face: HashMap<String, Attribute>,
-    pub corner: HashMap<String, Attribute>,
+    pub point: HashMap<String, Vec<Attribute>>,
+    pub edge: HashMap<String, Vec<Attribute>>,
+    pub face: HashMap<String, Vec<Attribute>>,
+    pub corner: HashMap<String, Vec<Attribute>>,
 }
 
 impl Domains {
@@ -126,34 +124,54 @@ impl Domains {
     }
 }
 
-pub struct GeometryFrame {
-    pub mesh: MeshData,
+pub struct GeometryBuilder {
+    pub mesh: Option<MeshData>,
     pub domain: Domains,
-    pub frame: u32,
 }
 
-impl From<Item> for GeometryFrame {
-    fn from(value: Item) -> Self {
-        GeometryFrame {
-            mesh: value.data.mesh,
-            domain: Domains::new(),
-            frame: 0u32,
+impl GeometryBuilder {
+    pub fn new() -> Self {
+        GeometryBuilder{
+            mesh: None,
+            domain: Domains::new()
         }
     }
-}
 
-pub struct Geometry {
-    pub frames: Vec<GeometryFrame>
-}
+    pub fn sort_frames(&mut self) {
 
-impl From<Vec<GeometryFrame>> for Geometry {
-    fn from(value: Vec<GeometryFrame>) -> Self {
-        Geometry { frames: value }
+        for (_, value) in self.domain.point.iter_mut() {
+            value.sort_by(|a, b| a.frame.cmp(&b.frame));
+        }
+
+        for (_, value) in self.domain.edge.iter_mut() {
+            value.sort_by(|a, b| a.frame.cmp(&b.frame));
+        }
+
+        for (_, value) in self.domain.face.iter_mut() {
+            value.sort_by(|a, b| a.frame.cmp(&b.frame));
+        }
+
+        for (_, value) in self.domain.corner.iter_mut() {
+            value.sort_by(|a, b| a.frame.cmp(&b.frame));
+        }
+    }
+
+    pub fn build(self) -> Geometry {
+        self.into()
     }
 }
 
-impl Geometry {
-    pub fn points() {
-        
+
+pub struct Geometry {
+    pub mesh: MeshData,
+    pub domain: Domains,
+}
+
+impl From<GeometryBuilder> for Geometry {
+    fn from(value: GeometryBuilder) -> Self {
+        Geometry{
+            mesh: value.mesh.unwrap(),
+            domain: value.domain
+        }
     }
 }
