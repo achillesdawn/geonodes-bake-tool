@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 pub mod math;
-pub mod tui;
+// pub mod tui;
 
 pub mod bake_reader;
 

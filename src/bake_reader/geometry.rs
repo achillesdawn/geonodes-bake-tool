@@ -1,13 +1,19 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap, iter};
 
 use crate::api::{AttributeType, Domain, MeshData};
-
 
 #[derive(Debug)]
 pub enum AttributeData {
     FLOAT(Vec<f32>),
     BOOL(Vec<bool>),
     INT(Vec<i32>),
+}
+
+#[derive(Debug)]
+pub enum AttributeDataType {
+    FLOAT(f32),
+    BOOL(bool),
+    INT(i32),
 }
 
 pub struct Attribute {
@@ -43,14 +49,13 @@ pub struct GeometryBuilder {
 
 impl GeometryBuilder {
     pub fn new() -> Self {
-        GeometryBuilder{
+        GeometryBuilder {
             mesh: None,
-            domain: Domains::new()
+            domain: Domains::new(),
         }
     }
 
     pub fn sort_frames(&mut self) {
-
         for (_, value) in self.domain.point.iter_mut() {
             value.sort_by(|a, b| a.frame.cmp(&b.frame));
         }
@@ -73,7 +78,6 @@ impl GeometryBuilder {
     }
 }
 
-
 pub struct Geometry {
     pub mesh: MeshData,
     pub domain: Domains,
@@ -81,9 +85,70 @@ pub struct Geometry {
 
 impl From<GeometryBuilder> for Geometry {
     fn from(value: GeometryBuilder) -> Self {
-        Geometry{
+        Geometry {
             mesh: value.mesh.unwrap(),
-            domain: value.domain
+            domain: value.domain,
         }
     }
+}
+
+impl Geometry {
+    pub fn points(&self, frame: usize) -> HashMap<usize, Point> {
+        let mut points: HashMap<usize, Point> =
+            HashMap::with_capacity(self.mesh.num_vertices as usize);
+
+        for (key, value) in self.domain.point.iter() {
+            let attribute = value.get(frame).unwrap();
+
+            match &attribute.data {
+                AttributeData::FLOAT(data) => {
+                    for (idx, value) in data.iter().enumerate() {
+                        let entry = points.entry(idx).or_insert(Point {
+                            frame,
+                            index: idx,
+                            data: HashMap::new(),
+                        });
+
+                        entry
+                            .data
+                            .insert(key, AttributeDataType::FLOAT(*value));
+                    }
+                }
+                AttributeData::BOOL(data) => {
+                    for (idx, value) in data.iter().enumerate() {
+                        let entry = points.entry(idx).or_insert(Point {
+                            frame,
+                            index: idx,
+                            data: HashMap::new(),
+                        });
+
+                        entry
+                            .data
+                            .insert(key, AttributeDataType::BOOL(*value));
+                    }
+                }
+                AttributeData::INT(data) => {
+                    for (idx, value) in data.iter().enumerate() {
+                        let entry = points.entry(idx).or_insert(Point {
+                            frame,
+                            index: idx,
+                            data: HashMap::new(),
+                        });
+
+                        entry
+                            .data
+                            .insert(key, AttributeDataType::INT(*value));
+                    }
+                }
+            }
+        }
+        points
+    }
+}
+
+#[derive(Debug)]
+pub struct Point<'a> {
+    frame: usize,
+    index: usize,
+    data: HashMap<&'a str, AttributeDataType>,
 }

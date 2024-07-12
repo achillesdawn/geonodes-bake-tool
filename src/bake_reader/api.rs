@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use std::{collections::HashMap, fmt::Display};
 
-
 #[derive(Debug, Deserialize)]
 pub enum ItemType {
     GEOMETRY,
@@ -47,7 +46,6 @@ impl Display for AttributeType {
         }
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct BlobData {

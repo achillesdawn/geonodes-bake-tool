@@ -10,18 +10,25 @@ use std::{
 };
 
 use crossterm::QueueableCommand;
-use geonodes_bake_tool::{bake_reader::BakeReader, tui, App};
+use geonodes_bake_tool::{bake_reader::BakeReader, App};
 
 fn main() {
     let mut reader = BakeReader::new("tests/91383020", &["light", "hit"]);
     let geometry = reader.load_meta().unwrap();
 
-    for (attribute, data) in geometry.domain.point.iter() {
-        dbg!(attribute);
+    for (attribute_name, data) in geometry.domain.point.iter() {
+        println!("attribute name: {}", attribute_name);
         for frame in data.iter() {
             dbg!(&frame.frame);
             
         }
+    }
+
+    let points = geometry.points(1);
+
+    for point in points {
+        dbg!(point);
+        break;
     }
 
     
