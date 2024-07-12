@@ -7,8 +7,11 @@ use std::{
 
 pub mod api;
 mod error;
-use api::{Attribute, AttributeData, BakeMetadata, Geometry, GeometryBuilder, RawAttribute};
+mod geometry;
+
+use api::{BakeMetadata, RawAttribute};
 use error::MetaReadError;
+use geometry::{Attribute, AttributeData, Geometry, GeometryBuilder};
 
 pub struct BakeReader {
     pub base_path: PathBuf,
