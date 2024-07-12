@@ -43,11 +43,11 @@ pub struct TuiApp {
     is_playing: bool,
     current_frame: usize,
     total_frames: usize,
-    frames: Vec<api::Frames>,
+    frames: Vec<api::GeometryFrame>,
 }
 
 impl TuiApp {
-    pub fn new(frames: Vec<api::Frames>) -> Self {
+    pub fn new(frames: Vec<api::GeometryFrame>) -> Self {
         TuiApp {
             done: false,
             is_playing: true,
@@ -135,22 +135,22 @@ impl Widget for &TuiApp {
             .border_set(border::ROUNDED)
             .cyan();
 
-        let frame = self.frames.get(self.current_frame).unwrap();
-        let p = Paragraph::new(frame.buffer.clone())
-            .wrap(ratatui::widgets::Wrap { trim: false })
-            .centered()
-            .block(block);
+        // let frame = self.frames.get(self.current_frame).unwrap();
+        // let p = Paragraph::new(frame.buffer.clone())
+        //     .wrap(ratatui::widgets::Wrap { trim: false })
+        //     .centered()
+        //     .block(block);
 
-        p.render(layout[1], buf);
+        // p.render(layout[1], buf);
 
-        let list_items: Vec<_> = self
-            .frames
-            .iter()
-            .map(|frame| frame.number.to_line())
-            .collect();
+        // let list_items: Vec<_> = self
+        //     .frames
+        //     .iter()
+        //     .map(|frame| frame.number.to_line())
+        //     .collect();
 
-        List::new(list_items)
-            .highlight_style(Style::default().fg(Color::White))
-            .render(layout[0], buf);
+        // List::new(list_items)
+        //     .highlight_style(Style::default().fg(Color::White))
+        //     .render(layout[0], buf);
     }
 }

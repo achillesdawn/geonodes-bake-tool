@@ -7,7 +7,7 @@ use std::{
 
 pub mod api;
 mod error;
-use api::{Attribute, AttributeData, BakeMetadata, Geometry, RawAttribute};
+use api::{Attribute, AttributeData, BakeMetadata, GeometryFrame, RawAttribute};
 use error::MetaReadError;
 
 pub struct BakeReader {
@@ -23,7 +23,7 @@ impl BakeReader {
         }
     }
 
-    pub fn load_meta(&mut self) -> Result<Vec<Geometry>, MetaReadError> {
+    pub fn load_meta(&mut self) -> Result<Vec<GeometryFrame>, MetaReadError> {
         let mut meta_path = self.base_path.clone();
         meta_path.push("meta");
 
@@ -49,7 +49,7 @@ impl BakeReader {
         Ok(geometries)
     }
 
-    fn read_meta(&self, path: PathBuf) -> Result<Geometry, MetaReadError> {
+    fn read_meta(&self, path: PathBuf) -> Result<GeometryFrame, MetaReadError> {
         let frame_number = get_frame_number(&path)?;
 
         let file = fs::File::open(path)?;
@@ -59,15 +59,15 @@ impl BakeReader {
             return Err(MetaReadError::ItemNotFound);
         };
 
-        let mut geometry: Geometry = match item.item_type {
+        let mut frame: GeometryFrame = match item.item_type {
             api::ItemType::GEOMETRY => item.into(),
         };
 
-        geometry.frame = frame_number;
+        frame.frame = frame_number;
 
-        let attributes = std::mem::take(&mut geometry.mesh.attributes);
+        let attributes = std::mem::take(&mut frame.mesh.attributes);
 
-        for raw_attribute in attributes.into_iter() {
+        for mut raw_attribute in attributes.into_iter() {
             dbg!(&raw_attribute.name);
 
             if !self.attributes.contains(&raw_attribute.name.as_str()) {
@@ -80,11 +80,30 @@ impl BakeReader {
                 raw_attribute.name, raw_attribute.domain, raw_attribute.attribute_type
             );
 
+            let entry = match &raw_attribute.domain {
+                api::Domain::POINT => frame
+                    .domain
+                    .point
+                    .entry(std::mem::take(&mut raw_attribute.name)),
+                api::Domain::EDGE => frame
+                    .domain
+                    .edge
+                    .entry(std::mem::take(&mut raw_attribute.name)),
+                api::Domain::FACE => frame
+                    .domain
+                    .face
+                    .entry(std::mem::take(&mut raw_attribute.name)),
+                api::Domain::CORNER => frame
+                    .domain
+                    .corner
+                    .entry(std::mem::take(&mut raw_attribute.name)),
+            };
+
             let attribute = self.read_blob(raw_attribute)?;
-            geometry.attributes.push(attribute);
+            entry.or_insert_with(|| attribute);
         }
 
-        Ok(geometry)
+        Ok(frame)
     }
 
     fn read_blob(&self, attribute: RawAttribute) -> Result<Attribute, MetaReadError> {

@@ -1,12 +1,4 @@
-use std::{
-    collections::HashMap,
-    fs,
-    io::{self, Read, Seek},
-    path::PathBuf,
-    str::FromStr,
-};
-
-use bake_reader::api::{RawAttribute, AttributeType, BakeMetadata, Frames};
+use std::path::PathBuf;
 
 pub mod math;
 pub mod tui;
@@ -19,12 +11,9 @@ pub struct App {
     base_path: PathBuf,
     attribute_names: Vec<&'static str>,
     col_size: usize,
-    pub frames: Vec<Frames>,
 }
 
 // let buffer = map_results(result, self.col_size);
-
-
 
 // Ok(Frame {
 //     buffer,

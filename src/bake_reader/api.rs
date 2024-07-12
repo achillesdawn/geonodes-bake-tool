@@ -94,8 +94,6 @@ pub struct Item {
     pub data: ItemData,
 }
 
-
-
 #[derive(Debug, Deserialize)]
 pub struct BakeMetadata {
     version: u8,
@@ -110,29 +108,36 @@ pub struct Attribute {
     pub data: AttributeData,
 }
 
-pub struct Geometry {
-    pub mesh: MeshData,
-    pub attributes: Vec<Attribute>,
-    pub frame: u32,
+pub struct Domains {
+    pub point: HashMap<String, Attribute>,
+    pub edge: HashMap<String, Attribute>,
+    pub face: HashMap<String, Attribute>,
+    pub corner: HashMap<String, Attribute>,
 }
 
-impl From<Item> for Geometry {
-    fn from(value: Item) -> Self {
-        Geometry {
-            mesh: value.data.mesh,
-            attributes: Vec::new(),
-            frame: 0u32,
+impl Domains {
+    pub fn new() -> Self {
+        Domains {
+            point: HashMap::new(),
+            edge: HashMap::new(),
+            face: HashMap::new(),
+            corner: HashMap::new(),
         }
     }
 }
 
-pub struct Frames {
-    pub number: u32,
-    pub buffer: String,
+pub struct GeometryFrame {
+    pub mesh: MeshData,
+    pub domain: Domains,
+    pub frame: u32,
 }
 
-impl From<Vec<Geometry>> for Frames {
-    fn from(value: Vec<Geometry>) -> Self {
-        todo!()
+impl From<Item> for GeometryFrame {
+    fn from(value: Item) -> Self {
+        GeometryFrame {
+            mesh: value.data.mesh,
+            domain: Domains::new(),
+            frame: 0u32,
+        }
     }
 }
