@@ -16,12 +16,7 @@ fn main() {
     let mut reader = BakeReader::new("tests/91383020", &["light", "hit"]);
     let geometries = reader.load_meta().unwrap();
 
-    for geometry in geometries.into_iter() {
-        println!("frame {}", geometry.frame);
-        for key in geometry.domain.point.keys() {
-            dbg!(key);
-        }
-    }
+
     // let mut config = App::new("/tmp/91383020", vec!["light", "hit"], 88);
 
     // config.load_meta().unwrap();

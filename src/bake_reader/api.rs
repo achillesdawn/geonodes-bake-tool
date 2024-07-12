@@ -141,3 +141,19 @@ impl From<Item> for GeometryFrame {
         }
     }
 }
+
+pub struct Geometry {
+    pub frames: Vec<GeometryFrame>
+}
+
+impl From<Vec<GeometryFrame>> for Geometry {
+    fn from(value: Vec<GeometryFrame>) -> Self {
+        Geometry { frames: value }
+    }
+}
+
+impl Geometry {
+    pub fn points() {
+        
+    }
+}

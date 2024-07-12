@@ -1,13 +1,13 @@
 use std::{
-    fs,
-    io::{self, Read, Seek},
+    fs::{self, File},
+    io::{self, BufReader, Read, Seek, Take},
     path::PathBuf,
     str::FromStr,
 };
 
 pub mod api;
 mod error;
-use api::{Attribute, AttributeData, BakeMetadata, GeometryFrame, RawAttribute};
+use api::{Attribute, AttributeData, BakeMetadata, Geometry, GeometryFrame, RawAttribute};
 use error::MetaReadError;
 
 pub struct BakeReader {
@@ -23,7 +23,7 @@ impl BakeReader {
         }
     }
 
-    pub fn load_meta(&mut self) -> Result<Vec<GeometryFrame>, MetaReadError> {
+    pub fn load_meta(&mut self) -> Result<Geometry, MetaReadError> {
         let mut meta_path = self.base_path.clone();
         meta_path.push("meta");
 
@@ -44,9 +44,12 @@ impl BakeReader {
             }
         }
 
+        geometries.sort_by(|a, b| a.frame.cmp(&b.frame));
+
+        let geometry: Geometry = geometries.into();
         // frames.sort_by(|a, b| a.number.cmp(&b.number));
         // self.frames = frames;
-        Ok(geometries)
+        Ok(geometry)
     }
 
     fn read_meta(&self, path: PathBuf) -> Result<GeometryFrame, MetaReadError> {
@@ -120,36 +123,19 @@ impl BakeReader {
         let mut file = fs::File::open(blob_path)?;
         file.seek(io::SeekFrom::Start(attribute.data.start))?;
 
-        let mut reader = io::BufReader::new(file).take(attribute.data.size);
+        let reader = io::BufReader::new(file).take(attribute.data.size);
 
         let data = match attribute.attribute_type {
-            api::AttributeType::FLOAT => {
-                let mut result: Vec<f32> = Vec::with_capacity((attribute.data.size / 4) as usize);
-                let mut buffer = [0u8; 4];
-
-                while let Ok(()) = reader.read_exact(&mut buffer) {
-                    let num = f32::from_le_bytes(buffer);
-                    result.push(num);
-                }
-
-                AttributeData::FLOAT(result)
+            api::AttributeType::FLOAT => read_float(reader, attribute.data.size),
+            api::AttributeType::BOOLEAN => read_bool(reader, attribute.data.size),
+            api::AttributeType::INT => {
+                // similar to float, (4 byte) ints together
+                todo!()
             }
-            api::AttributeType::BOOLEAN => {
-                let mut result: Vec<u8> = Vec::with_capacity((attribute.data.size) as usize);
-
-                reader
-                    .read_to_end(&mut result)
-                    .expect("could not read into boolean attribute");
-
-                let result: Vec<bool> = result
-                    .into_iter()
-                    .map(|b| unsafe { std::mem::transmute(b) })
-                    .collect();
-
-                AttributeData::BOOL(result)
+            api::AttributeType::FLOAT_VECTOR => {
+                // similar to float, 3 (4 byte) floats together
+                todo!()
             }
-            api::AttributeType::INT => todo!(),
-            api::AttributeType::FLOAT_VECTOR => todo!(),
             api::AttributeType::INT32_2D => todo!(),
         };
 
@@ -177,4 +163,31 @@ fn get_frame_number(path: &PathBuf) -> Result<u32, MetaReadError> {
         .map_err(|_| MetaReadError::ParseIntError)?;
 
     Ok(frame_number)
+}
+
+fn read_float(mut reader: Take<BufReader<File>>, size: u64) -> AttributeData {
+    let mut result: Vec<f32> = Vec::with_capacity((size / 4) as usize);
+    let mut buffer = [0u8; 4];
+
+    while let Ok(()) = reader.read_exact(&mut buffer) {
+        let num = f32::from_le_bytes(buffer);
+        result.push(num);
+    }
+
+    AttributeData::FLOAT(result)
+}
+
+fn read_bool(mut reader: Take<BufReader<File>>, size: u64) -> AttributeData {
+    let mut result: Vec<u8> = Vec::with_capacity(size as usize);
+
+    reader
+        .read_to_end(&mut result)
+        .expect("could not read into boolean attribute");
+
+    let result: Vec<bool> = result
+        .into_iter()
+        .map(|b| unsafe { std::mem::transmute(b) })
+        .collect();
+
+    AttributeData::BOOL(result)
 }
