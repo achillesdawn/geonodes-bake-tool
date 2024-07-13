@@ -16,6 +16,27 @@ pub enum AttributeDataType {
     INT(i32),
 }
 
+trait WrapInDataType {
+    fn wrap_into_attribute_data_type(self) -> AttributeDataType;
+}
+
+impl WrapInDataType for f32 {
+    fn wrap_into_attribute_data_type(self) -> AttributeDataType {
+        AttributeDataType::FLOAT(self)
+    }
+}
+
+impl WrapInDataType for bool {
+    fn wrap_into_attribute_data_type(self) -> AttributeDataType {
+        AttributeDataType::BOOL(self)
+    }
+}
+
+impl WrapInDataType for i32 {
+    fn wrap_into_attribute_data_type(self) -> AttributeDataType {
+        AttributeDataType::INT(self)
+    }
+}
 pub struct Attribute {
     pub name: String,
     pub domain: Domain,
@@ -92,8 +113,29 @@ impl From<GeometryBuilder> for Geometry {
     }
 }
 
+fn insert_data<'a, 'b, T>(
+    data: &Vec<T>,
+    points: &'b mut HashMap<usize, Point<'a>>,
+    frame: usize,
+    key: &'a str,
+) where
+    T: WrapInDataType + Copy,
+{
+    for (idx, value) in data.iter().enumerate() {
+        let entry = points.entry(idx).or_insert(Point {
+            frame,
+            index: idx,
+            data: HashMap::new(),
+        });
+
+        entry
+            .data
+            .insert(key, value.wrap_into_attribute_data_type());
+    }
+}
+
 impl Geometry {
-    pub fn points(&self, frame: usize) -> HashMap<usize, Point> {
+    pub fn points(&self, frame: usize) -> Vec<Point> {
         let mut points: HashMap<usize, Point> =
             HashMap::with_capacity(self.mesh.num_vertices as usize);
 
@@ -102,46 +144,18 @@ impl Geometry {
 
             match &attribute.data {
                 AttributeData::FLOAT(data) => {
-                    for (idx, value) in data.iter().enumerate() {
-                        let entry = points.entry(idx).or_insert(Point {
-                            frame,
-                            index: idx,
-                            data: HashMap::new(),
-                        });
-
-                        entry
-                            .data
-                            .insert(key, AttributeDataType::FLOAT(*value));
-                    }
+                    insert_data(data, &mut points, frame, key);
                 }
                 AttributeData::BOOL(data) => {
-                    for (idx, value) in data.iter().enumerate() {
-                        let entry = points.entry(idx).or_insert(Point {
-                            frame,
-                            index: idx,
-                            data: HashMap::new(),
-                        });
-
-                        entry
-                            .data
-                            .insert(key, AttributeDataType::BOOL(*value));
-                    }
+                    insert_data(data, &mut points, frame, key);
                 }
                 AttributeData::INT(data) => {
-                    for (idx, value) in data.iter().enumerate() {
-                        let entry = points.entry(idx).or_insert(Point {
-                            frame,
-                            index: idx,
-                            data: HashMap::new(),
-                        });
-
-                        entry
-                            .data
-                            .insert(key, AttributeDataType::INT(*value));
-                    }
+                    insert_data(data, &mut points, frame, key);
                 }
             }
         }
+        let mut points: Vec<Point> = points.into_values().collect();
+        points.sort_by(|a, b| a.index.cmp(&b.index));
         points
     }
 }

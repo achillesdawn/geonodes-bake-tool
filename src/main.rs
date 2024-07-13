@@ -28,7 +28,6 @@ fn main() {
 
     for point in points {
         dbg!(point);
-        break;
     }
 
     
