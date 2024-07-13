@@ -16,23 +16,23 @@ pub enum AttributeDataType {
     INT(i32),
 }
 
-trait WrapInDataType {
+trait WrappableAsAttribute {
     fn wrap_into_attribute_data_type(self) -> AttributeDataType;
 }
 
-impl WrapInDataType for f32 {
+impl WrappableAsAttribute for f32 {
     fn wrap_into_attribute_data_type(self) -> AttributeDataType {
         AttributeDataType::FLOAT(self)
     }
 }
 
-impl WrapInDataType for bool {
+impl WrappableAsAttribute for bool {
     fn wrap_into_attribute_data_type(self) -> AttributeDataType {
         AttributeDataType::BOOL(self)
     }
 }
 
-impl WrapInDataType for i32 {
+impl WrappableAsAttribute for i32 {
     fn wrap_into_attribute_data_type(self) -> AttributeDataType {
         AttributeDataType::INT(self)
     }
@@ -119,7 +119,7 @@ fn insert_data<'a, 'b, T>(
     frame: usize,
     key: &'a str,
 ) where
-    T: WrapInDataType + Copy,
+    T: WrappableAsAttribute + Copy,
 {
     for (idx, value) in data.iter().enumerate() {
         let entry = points.entry(idx).or_insert(Point {
